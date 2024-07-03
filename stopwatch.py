@@ -17,6 +17,8 @@ import sys
 # Window and frame creation
 window = tk.Tk()
 window.title("Stopwatch")
+icon = tk.PhotoImage(file ='icon.png')
+window.iconphoto(False, icon)
 
 # Get command-line arguments
 # Currently only one is debug level
@@ -95,8 +97,7 @@ def ToggleTimer():
     global timestart_text
     global window
     timerPauses.append(datetime.datetime.now())
-    if len(timerPauses) > 0:
-        timestart_text.set("Started at " + timerPauses[0].strftime("%Y-%m-%d %H:%M:%S"))
+    timestart_text.set("Started at " + timerPauses[0].strftime("%Y-%m-%d %H:%M:%S"))
     if DEBUG_LEVEL >= 2:
         print(f"Timer {'stopped' if timeractive else 'started'} At: ", timerPauses[-1])
     timeractive = not timeractive
