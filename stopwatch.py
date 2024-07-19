@@ -1,5 +1,6 @@
 import tkinter as tk
 import datetime
+import os
 import sys
 
 # Notes for improvement:
@@ -13,6 +14,8 @@ import sys
 # Format label for time when timer was started
 # Add button and label for 'flag' which just logs a time and the time since it.
 # - like lap, but only one and is removed on next click
+#
+# - Add backup files for logs. Update backup when opening file.
 
 # Window and frame creation
 window = tk.Tk()
@@ -32,6 +35,9 @@ args = sys.argv
 # 3 = continuous info (constant info from repeated events like timer updating)
 # 4 = exterminator mode (currently unused)
 DEBUG_LEVEL = int(args[1])
+
+log_path_txt = 'timelog.txt'
+log_path_csv = 'time_log.csv'
 
 timerPauses = []
 timeractive = False
@@ -63,7 +69,7 @@ def ResetTimer():
     timestart_text.set("Click [Start/Stop] to start timer.")
     ChangeBGColor(window, "#bad1ff")
     UpdateTimer()
-# Write time to file
+# Write time to text file. No longer used since CSV implementation.
 def LogTime():
     global timeractive
     global timerPauses
@@ -71,7 +77,7 @@ def LogTime():
         return
     if timeractive:
         ToggleTimer()
-    save_file = open(r"timelog.txt", "a")
+    save_file = open(log_path_txt, "a")
     totaltime = GetElapsedTime()
     # Write date, start and end time, and total duration.
     output = f"\n{str(datetime.datetime.now().date())}\t\tElapsed Time: {str(totaltime)}\nStart Time: {str(timerPauses[0])}\t\tEnd Time: {str(timerPauses[-1])}\n"
@@ -86,9 +92,48 @@ def LogTime():
     output += "\n"
     save_file.write(output)
     if DEBUG_LEVEL >= 1:
-        print("Time written to timelog.txt")
+        print(f"Time written to {log_path_txt}")
     # Change to green to indicate success
     ChangeBGColor(window, "#d2ffde")
+# New function for logging the time to a csv instead of a text file.
+def LogTimeCSV():
+    global timeractive
+    global timerPauses
+    if len(timerPauses) < 1:
+        return
+    if timeractive:
+        ToggleTimer()
+    import pandas as pd
+    df = None
+    # Check if CSV log already exists, and load it. If not, start with empty DF
+    if os.path.isfile(log_path_csv):
+        df = pd.read_csv(log_path_csv)
+    else:
+        if DEBUG_LEVEL > 1:
+            print(f"No file found at {log_path_csv}. Creating empty DataFrame.")
+        df = pd.DataFrame()
+    if DEBUG_LEVEL > 1:
+        print(f"Time log read into DataFrame:\n{df}")
+    totaltime = GetElapsedTime()
+    output = {'Date': datetime.datetime.now().date(), 'Elapsed Time': totaltime, 'Start Time': timerPauses[0], 'End Time': timerPauses[-1]}
+    durcount = len(timerPauses) // 2
+    output['Duration Count'] =  durcount
+    for d in range(durcount):
+        duration = timerPauses[(d*2)+1] - timerPauses[d*2]
+        output[f"Duration {d+1}"] = duration
+        if d < durcount-1:
+            pausedur = timerPauses[(d+1)*2] - timerPauses[(d*2)+1]
+            output[f"Paused {d+1}"]= pausedur
+    new_data = pd.DataFrame(output, index=[0])
+    if DEBUG_LEVEL > 1:
+        print(f"New row for time record created:\n{new_data}\nAdding to log...")
+    df = pd.concat([df, new_data])
+    df.to_csv(log_path_csv, index=False)
+    if DEBUG_LEVEL >= 1:
+        print(f"Time written to {log_path_csv}")
+    # Change to green to indicate success
+    ChangeBGColor(window, "#d2ffde")
+
 
 def ToggleTimer():
     global DEBUG_LEVEL
@@ -157,11 +202,11 @@ def UpdateTimer():
 def OpenLog():
     import subprocess, os, platform
     if platform.system() == 'Darwin':       # macOS
-        subprocess.call(('open', "timelog.txt"))
+        subprocess.call(('open', log_path_csv))
     elif platform.system() == 'Windows':    # Windows
-        os.startfile("timelog.txt")
+        os.startfile(log_path_csv)
     else:                                   # linux variants
-        subprocess.call(('xdg-open', "timelog.txt"))
+        subprocess.call(('xdg-open', log_path_csv))
 
 def ToggleFlag():
     global flagtime
@@ -191,7 +236,7 @@ timeButton = tk.Button(btnframe, command=ToggleTimer, text="Start/Stop", bg="#ae
 timeButton.grid(row=0, column=0, sticky="nesw")
 resetButton = tk.Button(btnframe, command=ResetTimer, text="Reset", bg="#fc7777", activebackground="#fa9d9d")
 resetButton.grid(row=0, column=1, sticky="nesw")
-logButton = tk.Button(btnframe, command=LogTime, text="Log Time")
+logButton = tk.Button(btnframe, command=LogTimeCSV, text="Log Time")
 logButton.grid(row=1, column=0, sticky="nesw")
 openLogButton = tk.Button(btnframe, command=OpenLog, text="Open Log")
 openLogButton.grid(row=1, column=1, sticky="nesw")
