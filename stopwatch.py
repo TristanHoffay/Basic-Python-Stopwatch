@@ -9,13 +9,11 @@ import sys
 # This could be changed to only calculate running time and store already complete
 # durations so they aren't recalculated constantly.
 #
-# Maybe change txt file writing to csv data storage
-#
-# Format label for time when timer was started
-# Add button and label for 'flag' which just logs a time and the time since it.
-# - like lap, but only one and is removed on next click
-#
-# - Add backup files for logs. Update backup when opening file.
+# - Add some sort of way to manipulate timestamps while stopwatch is running, or
+# implement some extra logged information for proper manipulation and
+# recalculation afterwards. This should address the problem of forgetting to
+# pause or resume the timer, maybe by letting the user type in a time to add or
+# subtract from the total and including this amount(s) as a separate variable
 
 # Window and frame creation
 window = tk.Tk()
@@ -69,6 +67,20 @@ def ResetTimer():
     timestart_text.set("Click [Start/Stop] to start timer.")
     ChangeBGColor(window, "#bad1ff")
     UpdateTimer()
+
+# Update a backup file for the log when writing. 'filepath' is for non-backup
+def UpdateBackup(filepath):
+    if not os.path.isfile(filepath):
+        print(f"Skipping backup - no file at {filepath} to backup.")
+        return
+    import shutil
+    path_split = filepath.rsplit('.', 1)
+    new_path = path_split[0] + '_backup.' + path_split[1]
+    if DEBUG_LEVEL >= 1:
+        print(f"Backing up {filepath} to {new_path}.")
+    shutil.copyfile(filepath, new_path)
+
+
 # Write time to text file. No longer used since CSV implementation.
 def LogTime():
     global timeractive
@@ -77,6 +89,7 @@ def LogTime():
         return
     if timeractive:
         ToggleTimer()
+    UpdateBackup(log_path_txt)
     save_file = open(log_path_txt, "a")
     totaltime = GetElapsedTime()
     # Write date, start and end time, and total duration.
@@ -95,6 +108,7 @@ def LogTime():
         print(f"Time written to {log_path_txt}")
     # Change to green to indicate success
     ChangeBGColor(window, "#d2ffde")
+
 # New function for logging the time to a csv instead of a text file.
 def LogTimeCSV():
     global timeractive
@@ -107,13 +121,14 @@ def LogTimeCSV():
     df = None
     # Check if CSV log already exists, and load it. If not, start with empty DF
     if os.path.isfile(log_path_csv):
+        UpdateBackup(log_path_csv)
         df = pd.read_csv(log_path_csv)
     else:
         if DEBUG_LEVEL > 1:
             print(f"No file found at {log_path_csv}. Creating empty DataFrame.")
         df = pd.DataFrame()
     if DEBUG_LEVEL > 1:
-        print(f"Time log read into DataFrame:\n{df}")
+        print(f"Time log with {df.shape[0]} rows read into DataFrame.\n")
     totaltime = GetElapsedTime()
     output = {'Date': datetime.datetime.now().date(), 'Elapsed Time': totaltime, 'Start Time': timerPauses[0], 'End Time': timerPauses[-1]}
     durcount = len(timerPauses) // 2
