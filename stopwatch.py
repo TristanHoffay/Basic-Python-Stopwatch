@@ -2,6 +2,7 @@ import tkinter as tk
 import datetime
 import os
 import sys
+import pandas as pd
 
 # Notes for improvement:
 #
@@ -47,7 +48,10 @@ timeflag_text = tk.StringVar(window, "Click [Toggle Flag] to set\na temporary ti
 # Recursively change background color of widget and its children
 def ChangeBGColor(widget, color):
     if not isinstance(widget, tk.Button):
-        widget.configure(bg=color)
+        try:
+            widget.configure(bg=color)
+        except:
+            pass
     for child in widget.winfo_children():
         ChangeBGColor(child, color)
 # Set timeractive = false and timerpauses to empty
@@ -117,20 +121,11 @@ def LogTimeCSV():
         return
     if timeractive:
         ToggleTimer()
-    import pandas as pd
-    df = None
-    # Check if CSV log already exists, and load it. If not, start with empty DF
-    if os.path.isfile(log_path_csv):
-        UpdateBackup(log_path_csv)
-        df = pd.read_csv(log_path_csv)
-    else:
-        if DEBUG_LEVEL > 1:
-            print(f"No file found at {log_path_csv}. Creating empty DataFrame.")
-        df = pd.DataFrame()
+    df = GetCSVData()
     if DEBUG_LEVEL > 1:
         print(f"Time log with {df.shape[0]} rows read into DataFrame.\n")
     totaltime = GetElapsedTime()
-    output = {'Date': datetime.datetime.now().date(), 'Elapsed Time': totaltime, 'Start Time': timerPauses[0], 'End Time': timerPauses[-1]}
+    output = {'Date': datetime.datetime.now().date(),'Title': name_text.get(), 'Elapsed Time': totaltime, 'Start Time': timerPauses[0], 'End Time': timerPauses[-1]}
     durcount = len(timerPauses) // 2
     output['Duration Count'] =  durcount
     for d in range(durcount):
@@ -149,6 +144,17 @@ def LogTimeCSV():
     # Change to green to indicate success
     ChangeBGColor(window, "#d2ffde")
 
+def GetCSVData():
+    df = None
+    # Check if CSV log already exists, and load it. If not, start with empty DF
+    if os.path.isfile(log_path_csv):
+        UpdateBackup(log_path_csv)
+        df = pd.read_csv(log_path_csv)
+    else:
+        if DEBUG_LEVEL > 1:
+            print(f"No file found at {log_path_csv}. Creating empty DataFrame.")
+        df = pd.DataFrame()
+    return df
 
 def ToggleTimer():
     global DEBUG_LEVEL
@@ -235,11 +241,17 @@ def ToggleFlag():
     UpdateTimer()
 
 timerframe = tk.Frame(window)
-timerlbl = tk.Label(timerframe, textvariable=timertext, font=('Courier 30'), padx=30, pady=40)
+timerlbl = tk.Label(timerframe, textvariable=timertext, font=('Courier 30'), padx=30, pady=30)
 timerlbl.pack()
 timerframe.pack()
 
 ux = tk.Frame(window)
+name_text = tk.StringVar(window, "Untitled Stopwatch")
+from tkinter import ttk
+name_select = ttk.Combobox(ux, textvariable = name_text)
+names = GetCSVData().get('Title', pd.Series()).unique().tolist()
+name_select['values'] = names
+name_select.pack()
 flaglbl = tk.Label(ux, textvariable=timeflag_text)
 flaglbl.pack()
 startlbl = tk.Label(ux, textvariable=timestart_text)
