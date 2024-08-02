@@ -125,7 +125,7 @@ def LogTimeCSV():
     if DEBUG_LEVEL > 1:
         print(f"Time log with {df.shape[0]} rows read into DataFrame.\n")
     totaltime = GetElapsedTime()
-    output = {'Date': datetime.datetime.now().date(),'Title': name_text.get(), 'Elapsed Time': totaltime, 'Start Time': timerPauses[0], 'End Time': timerPauses[-1]}
+    output = {'Date': datetime.datetime.now().date(),'Title': name_text.get(), 'Subtitle': subtitle_text.get(), 'Info': info_text.get(), 'Elapsed Time': totaltime, 'Start Time': timerPauses[0], 'End Time': timerPauses[-1]}
     durcount = len(timerPauses) // 2
     output['Duration Count'] =  durcount
     for d in range(durcount):
@@ -241,17 +241,28 @@ def ToggleFlag():
     UpdateTimer()
 
 timerframe = tk.Frame(window)
-timerlbl = tk.Label(timerframe, textvariable=timertext, font=('Courier 30'), padx=30, pady=30)
+timerlbl = tk.Label(timerframe, textvariable=timertext, font=('Courier 30'), padx=30, pady=20)
 timerlbl.pack()
 timerframe.pack()
 
 ux = tk.Frame(window)
 name_text = tk.StringVar(window, "Untitled Stopwatch")
+subtitle_text = tk.StringVar(window, "Unconfigured")
+info_text = tk.StringVar(window, "No Info")
+
 from tkinter import ttk
 name_select = ttk.Combobox(ux, textvariable = name_text)
 names = GetCSVData().get('Title', pd.Series()).unique().tolist()
 name_select['values'] = names
 name_select.pack()
+sub_select = ttk.Combobox(ux, textvariable = subtitle_text)
+subs = GetCSVData().get('Subtitle', pd.Series()).unique().tolist()
+sub_select['values'] = subs
+sub_select.pack()
+
+info_input = tk.Entry(ux, textvariable = info_text)
+info_input.pack()
+
 flaglbl = tk.Label(ux, textvariable=timeflag_text)
 flaglbl.pack()
 startlbl = tk.Label(ux, textvariable=timestart_text)
@@ -271,5 +282,5 @@ btnframe.pack()
 ux.pack()
 
 ChangeBGColor(window, "#bad1ff")
-window.geometry("300x300")
+window.geometry("300x350")
 window.mainloop()
