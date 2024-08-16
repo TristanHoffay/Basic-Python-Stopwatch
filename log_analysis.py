@@ -4,6 +4,7 @@ import os
 
 txt_log_path = 'timelog.txt'
 csv_log_path = 'time_log_from_txt.csv'
+csv_main_path = 'time_log.csv'
 
 def get_log_df(csv_path=csv_log_path):
     if os.path.isfile(csv_path):
@@ -91,7 +92,7 @@ def convert_objects(df):
 
 looping = True
 while looping:
-    choice = input("Select an option to continue:\n1: Convert text log to CSV data\n2: Quit\n(Other functionalities to be added soon)\n\nOption: ")
+    choice = input("Select an option to continue:\n1: Convert text log to CSV data\n2: Fix/Restructure CSV log\n3: Quit\n(Other functionalities to be added soon)\n\nOption: ")
     try:
         choice = int(choice)
     except:
@@ -109,5 +110,26 @@ while looping:
             out_file = csv_log_path
         convert_textlog(in_file, out_file)
     elif choice < 3:
+        in_file = input(f"Enter file path/name for CSV to correct, or leave empty to use default: {csv_main_path}\nPath: ")
+        out_file = input(f"Enter file path/name to write the corrected CSV log to, or leave empty to use default: {csv_main_path}\nPath: ")
+        if len(in_file) < 1:
+            in_file = csv_main_path
+        if len(out_file) < 1:
+            out_file = csv_main_path
+        df = get_log_df(in_file)
+        cols = df.columns
+        length = df.shape[0]
+        df_out = pd.DataFrame()
+        ordered_cols = ['Date', 'Title', 'Subtitle', 'Info']
+        for column in ordered_cols:
+            if column in cols:
+                df_out[column] = df[column]
+            else:
+                df_out[column] = ''
+        unordered_cols = [column for column in cols if column not in ordered_cols]
+        for column in unordered_cols:
+            df_out[column] = df[column]
+        df_out.to_csv(out_file, index=False)
+    elif choice < 4:
         looping = False
 
